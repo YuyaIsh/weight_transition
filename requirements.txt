@@ -1,3 +1,4 @@
+pip
 psycopg2==2.9.3
 pandas==1.4.2
 plotly==5.8.2
