@@ -22,19 +22,34 @@ def main():
 
     st.plotly_chart(fig)
 
-#                          ########        ########
-#                          ###    ###      ###    ###
-#                          ###      ###    ###    ###
-#                          ###      ###    ########
-#                          ###      ###    ###    ###
-#                          ###    ###      ###    ###
-#                          #######         ########
+#                          ########        ########                            #
+#                          ###    ###      ###    ###                          #
+#                          ###      ###    ###    ###                          #
+#                          ###      ###    ########                            #
+#                          ###      ###    ###    ###                          #
+#                          ###    ###      ###    ###                          #
+#                          #######         ########                            #
+
+def init_connection():
+    return psycopg2.connect(**st.secrets["postgres"])
+
+conn = init_connection()
+
+@st.experimental_memo(ttl=600)
+def run_query(query):
+    with conn.cursor() as cur:
+        cur.execute(query)
+        data = list(cur.fetchall())  # 一行1タプルとしてリスト化
+        colnames = [col.name for col in cur.description]  # 列名をリストで取得
+
+        return data,colnames
 
 #dbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdb デイリーデータ取得 dbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbddd
 def select_daily():
     sql = """select date,weight from daily
     ORDER BY date DESC"""
-    df = connect_db(sql)
+    data,colnames = run_query(sql)
+    df = pd.DataFrame(data,columns=colnames)  # データをデータフレーム化
 
     df_avg = select_moving_avg()
     df = pd.merge(df,df_avg)  # 平均列を結合
@@ -45,33 +60,10 @@ def select_daily():
 def select_moving_avg():
     sql = """select * from weight_weekly_moving_avg
     ORDER BY date DESC"""
-    df = connect_db(sql)
+    data,colnames = run_query(sql)
+    df = pd.DataFrame(data,columns=colnames)  # データをデータフレーム化
 
     return df
 
-def connect_db(sql):
-    ip = st.secrets["DB_IP"]
-    port = st.secrets["DB_PORT"]
-    dbname = "bodymake"
-    user = st.secrets["DB_USER"]
-    pw = st.secrets["DB_PW"]
-    db_info = f"host={ip} port={port} dbname={dbname} user={user} password={pw}"
-
-
-    # SELECT文ならデータ取得しdf化
-    if sql[:6] == "select":
-        with psycopg2.connect(db_info) as conn: # ローカル
-            with conn.cursor() as cur:
-                cur.execute(sql)
-                data = list(cur.fetchall())  # 一行1タプルとしてリスト化
-                colnames = [col.name for col in cur.description]  # 列名をリストで取得
-        df = pd.DataFrame(data,columns=colnames)  # データをデータフレーム化
-        return df
-    # SELECT文以外なら実行のみ
-    else:
-        with psycopg2.connect(db_info) as conn: # ローカル
-            with conn.cursor() as cur:
-                cur.execute(sql)
-                conn.commit()
 
 main()
