@@ -73,7 +73,7 @@ import psycopg2
 
 # Initialize connection.
 # Uses st.experimental_singleton to only run once.
-@st.experimental_memo
+# @st.experimental_memo
 def init_connection():
     return psycopg2.connect(**st.secrets["postgres"])
 
