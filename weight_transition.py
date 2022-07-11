@@ -50,14 +50,17 @@ def select_moving_avg():
     return df
 
 def connect_db(sql):
+    ip = st.secrets["DB_IP"]
+    port = st.secrets["DB_PORT"]
     dbname = "bodymake"
-    user = "postgres"
-    pw = "a"
-    db = f"dbname={dbname} user={user} password={pw}"
+    user = st.secrets["DB_USER"]
+    pw = st.secrets["DB_PW"]
+    db_info = f"host={ip} port={port} dbname={dbname} user={user} password={pw}"
+
 
     # SELECT文ならデータ取得しdf化
     if sql[:6] == "select":
-        with psycopg2.connect(db) as conn: # ローカル
+        with psycopg2.connect(db_info) as conn: # ローカル
             with conn.cursor() as cur:
                 cur.execute(sql)
                 data = list(cur.fetchall())  # 一行1タプルとしてリスト化
@@ -66,7 +69,7 @@ def connect_db(sql):
         return df
     # SELECT文以外なら実行のみ
     else:
-        with psycopg2.connect(db) as conn: # ローカル
+        with psycopg2.connect(db_info) as conn: # ローカル
             with conn.cursor() as cur:
                 cur.execute(sql)
                 conn.commit()
